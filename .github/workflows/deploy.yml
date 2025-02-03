@@ -58,4 +58,4 @@ jobs:
             docker pull ghcr.io/${{ github.repository_owner }}/nest-app:latest
             docker stop backend || true
             docker rm backend || true
-            docker run -d -p 8000:8000 --name backend --network ci-cd-fullstack-example_nest_network ghcr.io/${{ github.repository_owner }}/nest-app:latest
+            docker run -itd -p 8000:8000 --name backend --network ci-cd-fullstack-example_nest_network ghcr.io/${{ github.repository_owner }}/nest-app:latest
