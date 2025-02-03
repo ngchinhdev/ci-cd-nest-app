@@ -7,7 +7,7 @@ export class UserService {
   }
 
   findAll() {
-    return `This action returns all user CICD`;
+    return `This action returns all user CICD 3`;
   }
 
   findOne(id: number) {
