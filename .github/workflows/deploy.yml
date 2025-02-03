@@ -1,0 +1,61 @@
+name: Test and Deploy Nest App
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        
+    - name: Install Dependencies
+      run: npm ci
+
+    - name: Build the Application
+      run: npm run build
+
+    - name: Run Tests
+      run: npm test
+
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build --target production -t nest-app .
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker tag nest-app ghcr.io/${{ github.repository_owner }}/nest-app:latest
+          docker push ghcr.io/${{ github.repository_owner }}/nest-app:latest
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.IP_HOST }}
+          username: ${{ secrets.IP_USERNAME }}
+          password: ${{ secrets.IP_PASS }}
+          script: |
+            docker pull ghcr.io/${{ github.repository_owner }}/nest-app:latest
+            docker stop backend || true
+            docker rm backend || true
+            docker run -d -p 8000:8000 --name backend ghcr.io/${{ github.repository_owner }}/nest-app:latest
